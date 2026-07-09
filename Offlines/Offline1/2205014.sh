@@ -159,7 +159,6 @@ do_commit(){
         ((commitID++))
         commitID=$(printf "%04d" $commitID)
     fi
-    echo "$commitID"
 
     # now handle the commit into the .bvcs
     mkdir -p ".bvcs/objects/$commitID/files"
@@ -167,7 +166,10 @@ do_commit(){
         cp -r ".bvcs/objects/$old_commitID/files"/* ".bvcs/objects/$commitID/files/"
     fi
 
+    committed_files=0
+
     while IFS= read -r relative_path || [[ -n "$relative_path" ]]; do
+
         if [[ -z "$relative_path" ]]; then
             continue
         fi
@@ -182,8 +184,39 @@ do_commit(){
         mkdir -p "$dest_dir"
         cp "$relative_path" "$fullpath" 2>/dev/null
 
+        # enter the message
+        touch ".bvcs/objects/$commitID/message"
+        echo "$2" > ".bvcs/objects/$commitID/message"
+
+        #enter the timestamp
+        touch ".bvcs/objects/$commitID/timestamp"
+        formated_date=$(date "+%Y-%m-%d %H:%M:%S") # the + sign says... don't insert the date rather follow my format
+        echo "$formated_date" >".bvcs/objects/$commitID/timestamp"
+       
+        ((committed_files++))
     done< ".bvcs/staging"
 
+    #log
+    echo "$commitID|$formated_date|$2">>".bvcs/log"
+    #modify the head
+    echo "$commitID"> .bvcs/HEAD
+    #turncate the staging file
+    true > ".bvcs/staging"
+    echo -e "[$commitID] $2\n$committed_files file(s) committed."
+
+}
+
+show_log(){
+    if [[ ! -s .bvcs/log ]]; then
+        echo "No commits yet."
+        return 0
+    fi
+
+    while IFS="|" read -r commit_ date_ msg_; do
+        echo "commit $commit_"
+        echo "Date: $date_"
+        echo "Message: $msg_"
+    done< <(tac .bvcs/log) 
 }
 
 main() {
@@ -205,6 +238,11 @@ main() {
         commit)
             if  check_repo ; then
                 do_commit "${@:2}"
+            fi
+            ;;
+        log)
+            if  check_repo ; then
+                show_log
             fi
             ;;
         *)
