@@ -60,3 +60,13 @@ rm main.c .bvcs/staging
 touch main.c .bvcs/staging
 
 bvcs status
+
+bvcs commit
+bvcs commit -m
+true>.bvcs/staging
+
+bvcs commit -m "Cow"
+
+bvcs add main.c
+echo "//Hello World">main.c
+bvcs commit -m "Cow"

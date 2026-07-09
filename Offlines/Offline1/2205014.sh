@@ -139,6 +139,53 @@ show_status(){
 
 }
 
+do_commit(){
+    if [[ "$1" != -m || -z  "$2" ]]; then
+        echo -e "Commit message required. Use -m \"message\"."
+        return 1
+    fi
+
+    if [[ ! -s .bvcs/staging ]]; then
+        echo "Error: Nothing to commit"
+        return 0
+    fi
+
+    # GENERATE THE COMMIT ID
+    commitID="0001"
+    if [[ -f .bvcs/HEAD && -s .bvcs/HEAD ]]; then
+        old_commitID=$(<.bvcs/HEAD)
+        commitID=$((10#$old_commitID)) # bydefault linux treats every number as octal
+        # So, force them to be decimal
+        ((commitID++))
+        commitID=$(printf "%04d" $commitID)
+    fi
+    echo "$commitID"
+
+    # now handle the commit into the .bvcs
+    mkdir -p ".bvcs/objects/$commitID/files"
+    if [[ commitID -gt "0001" ]]; then
+        cp -r ".bvcs/objects/$old_commitID/files"/* ".bvcs/objects/$commitID/files/"
+    fi
+
+    while IFS= read -r relative_path || [[ -n "$relative_path" ]]; do
+        if [[ -z "$relative_path" ]]; then
+            continue
+        fi
+
+        if [[ ! -f  "$relative_path" ]]; then
+            echo "Warning: Staged file '$relative_path' not found in working directory."
+            continue
+        fi
+        
+        fullpath=".bvcs/objects/$commitID/files/$relative_path"
+        dest_dir=$(dirname "$fullpath")
+        mkdir -p "$dest_dir"
+        cp "$relative_path" "$fullpath" 2>/dev/null
+
+    done< ".bvcs/staging"
+
+}
+
 main() {
     subcommand=${1}
     case "$subcommand" in
@@ -153,6 +200,11 @@ main() {
         status)
             if  check_repo ; then
                 show_status
+            fi
+            ;;
+        commit)
+            if  check_repo ; then
+                do_commit "${@:2}"
             fi
             ;;
         *)
