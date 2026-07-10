@@ -11,7 +11,7 @@ check_repo(){
 
 init_repo(){
     if [[ -d .bvcs/ ]]; then
-        echo "Error : BVCS repository already exists."
+        echo "Error: BVCS repository already exists."
     else
         mkdir -p .bvcs/objects
         touch .bvcs/staging .bvcs/log .bvcs/HEAD
@@ -22,6 +22,7 @@ init_repo(){
 add_files(){
     if [[ $# == 0 ]]; then
         echo "Error: No files specified."
+        return 1
     fi
 
     for file in "${@}"; do
@@ -97,18 +98,26 @@ show_status(){
     untracked=0
 
     # print the staged files
-    for key in "${!file_status[@]}"; do
-        if [[ ${file_status["$key"]} == "staged" ]]; then
+    while IFS= read -r key ; do
+            if [[ -z "$key" ]]; then
+            continue
+            fi
             if ((staged==0)); then
                 echo "Staged for commit:"
                 staged=1
             fi
             echo " $key"
-        fi
-    done
+    done < ".bvcs/staging"
+    #print the ending newline
+    if [[ $staged -gt 0 ]]; then
+    echo ""
+    fi
 
     # print the modified files
-    for key in "${!file_status[@]}"; do
+    while IFS= read -r key; do
+        if [[ -z "$key" ]]; then
+            continue
+        fi
         if [[ ${file_status["$key"]} == "modified" ]]; then
             if ((modified==0)); then
                 echo "Modified (not staged):"
@@ -116,10 +125,17 @@ show_status(){
             fi
             echo " $key"
         fi
-    done
+    done< <(printf "%s\n" "${!file_status[@]}" | sort)
+    #print the ending newline
+    if [[ $modified -gt 0 ]]; then
+    echo ""
+    fi
 
     # print the untracked files
-    for key in "${!file_status[@]}"; do
+    while IFS= read -r key; do
+        if [[ -z "$key" ]]; then
+            continue
+        fi
         if [[ ${file_status["$key"]} == "untracked" ]]; then
             if ((untracked==0)); then
                 echo "Untracked files:"
@@ -127,10 +143,15 @@ show_status(){
             fi
             echo " $key"
         fi
-    done
+    done< <(printf "%s\n" "${!file_status[@]}" | sort)
+    
+    #print the ending newline
+    if [[ $untracked -gt 0 ]]; then
+    echo ""
+    fi
 
     if ((staged==0 && untracked==0 && modified==0)); then
-        echo "Nothing to commit, working tree clean"
+        echo "Nothing to commit, working tree clean."
     fi 
 
     # for key in "${!file_status[@]}"; do
@@ -216,7 +237,88 @@ show_log(){
         echo "commit $commit_"
         echo "Date: $date_"
         echo "Message: $msg_"
+        echo ""
     done< <(tac .bvcs/log) 
+}
+
+show_diff(){
+    if [[ ! -s .bvcs/HEAD ]]; then
+        echo "Error: No commits yet."
+        return 0
+    fi
+    head_id=$(<.bvcs/HEAD)
+
+    if [[ ! -z "$1" ]]; then
+        relative_path="$1"
+        fullpath=".bvcs/objects/$head_id/files/$relative_path"
+        if [[ ! -f "$fullpath" ]]; then
+            echo "Error: '$relative_path' is not tracked."
+        else
+            if diff -q "$relative_path" "$fullpath" >/dev/null ; then
+                echo "$relative_path: no changes."
+
+            else
+                diff -u --label "$fullpath" --label "$relative_path" "$fullpath" "$relative_path"
+            fi
+        fi
+    #when no argument is given
+    else
+        while IFS= read -r fullpath; do
+            relative_path=${fullpath#".bvcs/objects/$head_id/files/"}
+            if diff -q "$relative_path" "$fullpath" >/dev/null ; then
+                echo "$relative_path: no changes."
+
+            else
+                diff -u --label "$fullpath" --label "$relative_path" "$fullpath" "$relative_path"
+            fi
+        done < <(find ".bvcs/objects/$head_id/files" -type f | sort)
+    fi
+}
+
+restore_file(){
+    if [[ -z "$1" ]]; then
+        echo "Error: No file specified."
+        return 1
+    fi
+
+    if [[ ! -s .bvcs/HEAD ]]; then
+        echo "Error: No commits yet."
+        return 1
+    fi
+
+    file_name="$1"
+    head_id=$(<.bvcs/HEAD)
+    fullpath=".bvcs/objects/$head_id/files/$file_name"
+    if [[ ! -f "$fullpath" ]]; then
+        echo "Error: '$file_name' not found in commit $head_id."
+        return 1
+    fi
+
+    prompt="#"
+    read -r -p "Restore '$file_name' from commit $head_id? [y/N]:" prompt
+
+    if [[ "$prompt" ==  "y" || "$prompt" ==  "Y" ]]; then
+        dest_dir=$(dirname "$file_name")
+        mkdir -p "$dest_dir"
+        cp "$fullpath" "$file_name"
+        echo "Restored: $file_name"
+    else
+        echo "Aborted."
+    fi
+}
+
+help() {
+    echo "Usage: bvcs <subcommand> [arguments]"
+    echo ""
+    echo "Available subcommands:"
+    echo "  init                    Initialize a new BVCS repository"
+    echo "  add <file>...           Stage one or more files for the next commit"
+    echo "  status                  Show staged, modified, and untracked files"
+    echo "  commit -m <msg>         Save a snapshot of all staged files"
+    echo "  log                     Display the full commit history"
+    echo "  diff [file]             Compare working copy to the latest commit"
+    echo "  restore <file>          Restore a file from the latest commit"
+    echo "  help                    Print usage information for all subcommands"
 }
 
 main() {
@@ -244,6 +346,19 @@ main() {
             if  check_repo ; then
                 show_log
             fi
+            ;;
+        diff)
+            if  check_repo ; then
+                show_diff "${@:2}"
+            fi
+            ;;
+        restore)
+            if  check_repo ; then
+                restore_file "${@:2}"
+            fi
+            ;;
+        help)
+            help
             ;;
         *)
             echo "Error: Unknown subcommand '$subcommand'"
