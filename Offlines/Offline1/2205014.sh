@@ -162,28 +162,29 @@ show_status(){
 
 do_commit(){
     if [[ "$1" != -m || -z  "$2" ]]; then
-        echo -e "Commit message required. Use -m \"message\"."
+        echo -e "Error: Commit message required. Use -m \"message\"."
         return 1
     fi
 
     if [[ ! -s .bvcs/staging ]]; then
-        echo "Error: Nothing to commit"
+        echo "Error: Nothing to commit."
         return 0
     fi
 
     # GENERATE THE COMMIT ID
-    commitID="0001"
-    if [[ -f .bvcs/HEAD && -s .bvcs/HEAD ]]; then
-        old_commitID=$(<.bvcs/HEAD)
-        commitID=$((10#$old_commitID)) # bydefault linux treats every number as octal
-        # So, force them to be decimal
-        ((commitID++))
-        commitID=$(printf "%04d" $commitID)
+    commitID=1
+    if [[ -f .bvcs/log && -s .bvcs/log ]]; then
+        old_commitID=$(wc -l < .bvcs/log)
+        commitID=$old_commitID
+        old_commitID=$(printf "%04d" "$old_commitID")
+        ((commitID++))    
     fi
 
+    temp=$commitID
+    commitID=$(printf "%04d" $commitID)
     # now handle the commit into the .bvcs
     mkdir -p ".bvcs/objects/$commitID/files"
-    if [[ commitID -gt "0001" ]]; then
+    if [[ $temp -gt 1 ]]; then
         cp -r ".bvcs/objects/$old_commitID/files"/* ".bvcs/objects/$commitID/files/"
     fi
 
@@ -205,17 +206,18 @@ do_commit(){
         mkdir -p "$dest_dir"
         cp "$relative_path" "$fullpath" 2>/dev/null
 
-        # enter the message
-        touch ".bvcs/objects/$commitID/message"
-        echo "$2" > ".bvcs/objects/$commitID/message"
-
-        #enter the timestamp
-        touch ".bvcs/objects/$commitID/timestamp"
-        formated_date=$(date "+%Y-%m-%d %H:%M:%S") # the + sign says... don't insert the date rather follow my format
-        echo "$formated_date" >".bvcs/objects/$commitID/timestamp"
+       
        
         ((committed_files++))
     done< ".bvcs/staging"
+    # enter the message
+    touch ".bvcs/objects/$commitID/message"
+    echo "$2" > ".bvcs/objects/$commitID/message"
+
+    #enter the timestamp
+    touch ".bvcs/objects/$commitID/timestamp"
+    formated_date=$(date "+%Y-%m-%d %H:%M:%S") # the + sign says... don't insert the date rather follow my format
+    echo "$formated_date" >".bvcs/objects/$commitID/timestamp"
 
     #log
     echo "$commitID|$formated_date|$2">>".bvcs/log"
@@ -307,7 +309,7 @@ restore_file(){
     fi
 }
 
-help() {
+usage() {
     echo "Usage: bvcs <subcommand> [arguments]"
     echo ""
     echo "Available subcommands:"
@@ -334,7 +336,7 @@ main() {
             ;;
         status)
             if  check_repo ; then
-                show_status
+                show_status 
             fi
             ;;
         commit)
@@ -358,7 +360,7 @@ main() {
             fi
             ;;
         help)
-            help
+            usage
             ;;
         *)
             echo "Error: Unknown subcommand '$subcommand'"

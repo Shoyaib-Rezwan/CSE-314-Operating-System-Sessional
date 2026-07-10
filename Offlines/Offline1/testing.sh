@@ -1,65 +1,127 @@
 #!/usr/bin/bash
 
 shopt -s expand_aliases
-# Define the path to your BVCS script
+# Define the absolute path to your BVCS implementation
 alias bvcs='"/home/shoyaib/Desktop/Level3 Term1/Course Materials/Sessional/CSE 314/Offlines/Offline1/2205014.sh"'
 
-# Setup a clean testing directory
-TEST_DIR="/tmp/bvcs_testing"
-rm -rf "$TEST_DIR"
-mkdir -p "$TEST_DIR"
-cd "$TEST_DIR" || exit 1
+# Setup a clean test workspace
+WORKSPACE="tmp/bvcs_ultimate_test"
+rm -rf "$WORKSPACE"
+mkdir -p "$WORKSPACE"
+cd "$WORKSPACE" || exit 1
 
-echo "=== TASK 1: Testing Repository Initialization ==="
+echo "=========================================================="
+echo "EDGE CASE SUITE 1: Pre-initialization Guard Checks"
+echo "=========================================================="
+# Testing commands before running 'init'
+bvcs status
+bvcs log
+bvcs add file.txt
+bvcs commit -m "Should fail"
+bvcs diff
+bvcs restore file.txt
+bvcs unknown_cmd
+
+echo -e "\n=========================================================="
+echo "EDGE CASE SUITE 2: Repository Initialization"
+echo "=========================================================="
 bvcs init
-# Check if directory structure exists
-if [[ -d .bvcs/objects && -f .bvcs/staging && -f .bvcs/log && -f .bvcs/HEAD ]]; then
-    echo "SUCCESS: Repository initialized correctly."
-else
-    echo "FAIL: Missing repository structural files."
-fi
+# Check structural instantiation
+ls -a .bvcs/
+# Duplicate initialization error check
+bvcs init
 
-echo -e "\n=== TASK 2: Testing Status & Staging ==="
-echo "Content A" > fileA.txt
-echo "Content B" > fileB.txt
-mkdir -p subfolder
-echo "Content C" > subfolder/fileC.txt
+echo -e "\n=========================================================="
+echo "EDGE CASE SUITE 3: Empty History Controls & Help"
+echo "=========================================================="
+bvcs status
+bvcs log
+bvcs diff
 
-echo "--- Initial Status (Should be Untracked) ---"
+echo -e "\n=========================================================="
+echo "EDGE CASE SUITE 4: Advanced Staging Options"
+echo "=========================================================="
+# No args given
+bvcs add 
+
+# Prepare mixed valid, missing, and duplicate items
+echo "alpha-content" > alpha.txt
+echo "beta-content" > beta.txt
+mkdir -p sub
+echo "gamma-content" > sub/gamma.txt
+
+# Phase 1 staging
+bvcs add alpha.txt sub/gamma.txt
+
+# Phase 2 staging with duplicate and non-existent tracking metrics
+bvcs add alpha.txt ghost.txt beta.txt
+
+echo -e "\n=========================================================="
+echo "EDGE CASE SUITE 5: Status Ordering & Blank Line Assertions"
+echo "=========================================================="
+# Create an untracked file that sorts alphabetically earlier/later
+echo "untracked-content" > delta.txt
+echo "abc-untracked" > abc.txt
+
+# Check current category separation
 bvcs status
 
-echo "--- Staging Files ---"
-bvcs add fileA.txt subfolder/fileC.txt
+echo -e "\n=========================================================="
+echo "EDGE CASE SUITE 6: Fail-safe Commits"
+echo "=========================================================="
+# Missing flag/message errors
+bvcs commit
+bvcs commit -m
 
-echo "--- Status Post-Staging (Should show Staged and Untracked) ---"
+# Successful initial baseline commit
+bvcs commit -m "Initial commit snapshot"
+
+# Immediate empty commit prevention evaluation
+bvcs commit -m "Empty tracking validation"
+
+echo -e "\n=========================================================="
+echo "EDGE CASE SUITE 7: Tracking Progress, Logs, and Diffs"
+echo "=========================================================="
+# Modify staged baseline
+echo "alpha-content-mutated" > alpha.txt
+# Stage change
+bvcs add alpha.txt
+# Commit commit #2
+bvcs commit -m "Updated alpha source structural configurations"
+
+# Mutate workspace tracking without staging
+echo "alpha-content-double-mutated" > alpha.txt
+
+echo "--- Status Output ---"
 bvcs status
 
-echo -e "\n=== TASK 3: Testing Commits ==="
-bvcs commit -m "Initial baseline commit"
-
-echo "--- Status Post-Commit (Should show Untracked only) ---"
-bvcs status
-
-echo -e "\n=== TASK 4: Testing Modifications & Diffs ==="
-echo "Modified Content A" > fileA.txt
-echo "--- Status with Modifications (Should show Modified) ---"
-bvcs status
-
-echo "--- Diff Verification ---"
-bvcs diff fileA.txt
-
-echo -e "\n=== TASK 5: Testing History Logs ==="
-bvcs add fileA.txt
-bvcs commit -m "Updated fileA content"
+echo "--- History Log Verification ---"
 bvcs log
 
-echo -e "\n=== TASK 6: Testing Manual Interventions (Restore) ==="
-echo "Malicious structural overwrite" > fileA.txt
-echo "--- Before Restore ---"
-cat fileA.txt
+echo "--- Single File Diff Output ---"
+bvcs diff alpha.txt
 
-echo "--- Triggering Restore (Type 'y' when prompted manually) ---"
-bvcs restore fileA.txt
+echo "--- Clean Single File Diff Output ---"
+bvcs diff beta.txt
 
-echo "--- After Restore (Should show 'Modified Content A') ---"
-cat fileA.txt
+echo "--- Untracked File Diff Exception Handling ---"
+bvcs diff ghost.txt
+
+echo -e "\n=========================================================="
+echo "EDGE CASE SUITE 8: Interactive Content Restorations"
+echo "=========================================================="
+# Missing target argument
+bvcs restore
+
+# Untracked file target selection
+bvcs restore ghost.txt
+
+# Case 8A: User abort configuration check (Simulating 'n')
+echo "--- Testing Restore Abort ---"
+echo "n" | bvcs restore alpha.txt
+cat alpha.txt
+
+# Case 8B: User acceptance validation (Simulating 'y')
+echo "--- Testing Restore Acceptance ---"
+echo "y" | bvcs restore alpha.txt
+cat alpha.txt
