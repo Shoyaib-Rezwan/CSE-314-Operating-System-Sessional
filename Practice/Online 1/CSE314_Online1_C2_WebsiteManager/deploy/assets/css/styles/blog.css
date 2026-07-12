@@ -1,0 +1,15 @@
+/* Blog styles */
+.blog-list article {
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+}
+
+.blog-list img {
+    max-width: 100%;
+    height: auto;
+}
+
+.post-content {
+    margin: 2rem 0;
+}

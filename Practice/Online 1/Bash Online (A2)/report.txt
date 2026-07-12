@@ -1,0 +1,35 @@
+Scan time: 2025-05-18 14:20:13
+Directory: sample
+
+BROKEN LINK COUNTS:
+docs/getting-started/installation.html: 1
+docs/api/authentication.html: 0
+docs/tutorials/expert.html: 1
+docs/blog/case-study.html: 1
+docs/reference/api.html: 0
+docs/downloads/index.html: 0
+docs/tutorials/index.html: 0
+docs/reference/config.html: 1
+docs/faq/common-issues.html: 0
+docs/faq/index.html: 1
+docs/api/index.html: 0
+docs/api/examples.html: 1
+docs/getting-started/quick-start.html: 0
+docs/blog/latest.html: 0
+docs/getting-started/index.html: 0
+docs/reference/index.html: 0
+docs/api/endpoints.html: 1
+docs/tutorials/advanced.html: 0
+docs/blog/index.html: 0
+docs/tutorials/basic.html: 0
+docs/getting-started/faq.html: 2
+
+STATISTICS:
+Total HTML files scanned: 21
+Files checked: 21 (0 from cache)
+Total internal links: 72
+Broken links: 9
+
+CACHE SUMMARY:
+Cache hits: 0
+Cache misses: 21

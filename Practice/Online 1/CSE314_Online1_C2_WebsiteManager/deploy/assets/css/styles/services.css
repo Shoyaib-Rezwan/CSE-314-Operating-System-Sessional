@@ -1,0 +1,12 @@
+/* Services page styles */
+.service {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 2rem;
+    padding: 1rem;
+}
+
+.service img {
+    max-width: 100%;
+    height: auto;
+}

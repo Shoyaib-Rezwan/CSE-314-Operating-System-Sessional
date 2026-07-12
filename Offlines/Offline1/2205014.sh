@@ -154,10 +154,6 @@ show_status(){
         echo "Nothing to commit, working tree clean."
     fi 
 
-    # for key in "${!file_status[@]}"; do
-    #     echo "$key: ${file_status["$key"]}"
-    # done
-
 }
 
 do_commit(){
@@ -216,7 +212,7 @@ do_commit(){
 
     #enter the timestamp
     touch ".bvcs/objects/$commitID/timestamp"
-    formated_date=$(date "+%Y-%m-%d %H:%M:%S") # the + sign says... don't insert the date rather follow my format
+    formated_date=$(date "+%Y-%m-%d %H:%M:%S") 
     echo "$formated_date" >".bvcs/objects/$commitID/timestamp"
 
     #log
@@ -363,7 +359,7 @@ main() {
             usage
             ;;
         *)
-            echo "Error: Unknown subcommand '$subcommand'"
+            echo "Error: Unknown subcommand '$subcommand'."
             exit 1
             ;;
     esac
